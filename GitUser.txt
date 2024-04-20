@@ -1,1 +1,12 @@
-1 git relog
+命令：
+1 git relog //查看所有版本变动记录（可与 [git reset --hard 版本号（提交ID）] 配合用于版本回退）
+2 git diff --cached //查看暂存区和版本库的差异
+3 git diff <file> //查看指定文件的不同
+4 git ls-files //查看暂存区文件
+
+相关：
+HEAD  //指向分支的最新提交节点(提交的最新版本)
+HEAD^ //上一个版本
+HEAD~n //上n个版本
+
+.gitignore忽略文件 //把*.o写到 .gitignore中，所有.o文件都不再会被git管理
