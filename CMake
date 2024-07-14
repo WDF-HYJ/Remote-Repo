@@ -1,0 +1,7 @@
+一、在源文件的工作目录下创建一个文件-CMakeLists.txt。
+二、编写CMakeLists.txt内容。
+三、编写CMakeLists.txt语法:
+  1、project(项目名称)：设置项目名称，参数随意指定
+  2、aux_source_directory(源文件目录src 变量VAR):搜索src目录下说有的源文件，并将结果列表存储在变量VAR中
+  3、add_executable(可执行程序名称target 指定使用源文件$(VAR1) $(VAR2) ...)指定使用源文件，生成可执行文件target，$(变量名)是取变量的值
+  4、include_directories(headDir):设置包含的头文件目录
