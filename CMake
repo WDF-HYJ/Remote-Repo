@@ -5,3 +5,101 @@
   2、aux_source_directory(源文件目录src 变量VAR):搜索src目录下说有的源文件，并将结果列表存储在变量VAR中
   3、add_executable(可执行程序名称target 指定使用源文件$(VAR1) $(VAR2) ...)指定使用源文件，生成可执行文件target，$(变量名)是取变量的值
   4、include_directories(headDir):设置包含的头文件目录
+
+
+
+/********************************STM32 CMake 构建 *************************************************/
+-CMakeLists.txt
+
+/* 设置CMake系统名称，如果生成的是STM32，设置成Generic即可，如果生成的是Linux，则设置成Linux, 如果生成的是Android，则设置成Android */
+set(CMAKE_SYSTEM_NAME Generic)
+/* 设置CMake系统版本，修改一下好像也没问题，不过我们不需要修改 */
+set(CMAKE_SYSTEM_VERSION 1)
+/* 检查CMake版本，至少需要3.27版本，如果我们用到CMake高级功能，可能需要更高版本 */
+cmake_minimum_required(VERSION 3.27)
+
+/* 设置交叉工具链 */
+set(CMAKE_C_COMPILER arm-none-eabi-gcc)
+set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
+set(CMAKE_ASM_COMPILER arm-none-eabi-gcc)
+set(CMAKE_AR arm-none-eabi-ar)
+set(CMAKE_OBJCOPY arm-none-eabi-objcopy)
+set(CMAKE_OBJDUMP arm-none-eabi-objdump)
+set(SIZE arm-none-eabi-size)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+/* 设置项目名称，并支持要编译的文件类型，包括C、C++、汇编 */
+project(Test C CXX  ASM)
+se(CMAKE_C_STANDARD 11)
+se(CMAKE_CXX_STANDARD 17)
+
+/* 设置编译器对浮点数的支持，通过取消下面注释，会开启对硬件浮点数的支持，不过有的单片机是没有硬件浮点单元的 */
+//add_compile_definitions(ARM_MATH_CM4;ARM_MATH_MATRIX_CHECK:ARM_MATH_ROUNDING)
+//add_compile_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
+//add_link_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
+
+/* 通过取消下面注释，会开启对软件浮点数的支持，就是通过整数计算模拟浮点数计算 */
+//add_compile_options(-mfloat-abi=soft)
+
+/* 设置编译器选项，指定cpu类型和指令集，请千万不要更改 */
+add_compile_options(-mcpu=cortex-m0 -mthumb -mthumb-interwork)
+add_compile_options(-ffunction-sections -fdata-sections -fno-common -fmessage -length=0)
+
+/* 设置编译器警告级别，取消注释则不输出绝对地址警告 */
+//set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" -Wno-register)
+
+/* 设置编译器选项，对汇编文件进行预处理 */
+add_compile_options($<$<COIMPILE_LANGUAGE:ASM>:-x$<SEMICOLON>assembler-with-cpp>)
+
+/* 设置编译器代码优化等级，如果设置CMAKE_BUILD_TYPE = Release,则进行最大优化
+ * 如果设置CMAKE_BUILD_TYPE = RelWithDebInfo,则进行最大优化并输出调试信息
+ * 如果设置CMAKE_BUILD_TYPE = MinSizeRel,则进行最小优化
+ * 如果未设置CMAKE_BUILD_TYPE,则进行最小优化并输出调试信息
+ */
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+    message(STATUS "Maximum optimization for speed")
+    add_compile_options(-Ofast)
+elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
+    message(STATUS "Maximum optimization for speed, debug info include")
+    add_compile_options(-Ofast -g)
+elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "MinSizeRel")
+    message(STATUS "Maximum optimization for size")
+    add_compile_options(-Os)
+else ()
+    message(STATUS "Minimal optimization, debug info include")
+    add_compile_options(-Os -g)
+endif
+
+/* 添加头文件搜索路径 */
+include_directories(*/inc1
+                    */inc2
+                    */inc3)
+
+/* 添加宏定义 */
+add_definitions(-Dxxx1 -Dxxx2)
+
+/* 设置要编译的文件 */
+file(GLOB_RECURSE SOURCES
+        "src1/*.*"
+        "src2/*.*")
+/* 指定链接脚本 */
+set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/xxx.ld)
+
+/* 设置链接器选项 */
+add_link_options(-Wl -gc-sections,--print-memory-usage,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)
+add_link_options(-mcpu=cortex-m7 -mthumb-interwork)
+add_link_options(-T ${LINKER_SCRIPT})
+
+/* 添加可执行程序 */
+add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT})
+
+/* 设置两个变量 */
+set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
+set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
+
+/* 设置编译后要执行的命令，这段命令的功能是根据elf文件生成hex文件和bin文件 */
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+                    COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${HEX_FILE}
+                    COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}.elf> ${BIN_FILE}
+                    COMMAND "Building ${HEX_FILE} Building ${BIN_FILE}")
